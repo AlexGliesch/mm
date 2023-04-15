@@ -1,8 +1,10 @@
 #include "mm.h"
 #include "timer.h"
 #include <cassert>
-#include <queue>
-#include <unordered_map>
+#include <deque>
+#include <map>
+
+#include "parallel_hashmap/phmap.h"
 
 /// @brief Search state
 struct State
@@ -61,31 +63,78 @@ struct State
   }
 };
 
+struct CompareGBFSEntries {
+    bool operator()(const std::pair<int, int> &lhs, const std::pair<int, int> &rhs) const {
+        if (lhs.first != rhs.first) {
+            return lhs.first > rhs.first;
+        }
+        return lhs.second < rhs.second;
+    }
+};
+
+class GreedyOpenList {
+    typedef std::deque<State> Bucket;
+
+    std::map<std::pair<int, int>, Bucket, CompareGBFSEntries> buckets;
+    int total_size;
+
+public:
+    GreedyOpenList() : total_size(0) {}
+
+    void push(const State &entry, const std::pair<int, int>& key) {
+        buckets[key].push_back(entry);
+        ++total_size;
+    }
+
+    State pop() {
+        assert(total_size > 0);
+        auto it = buckets.begin();
+        assert(it != buckets.end());
+        Bucket &bucket = it->second;
+        assert(!bucket.empty());
+        State result = bucket.front();
+        bucket.pop_front();
+        if (bucket.empty())
+            buckets.erase(it);
+        --total_size;
+        return result;
+    }
+
+    bool empty() {
+        return total_size == 0;
+    }
+
+    size_t size() {
+      return total_size;
+    }
+
+};
+
 /// @brief run main algorithm
 void
 RunAlgorithm()
 {
-  std::priority_queue<State> pq;
-  std::unordered_map<std::bitset<NUM_VARS>, u32> dist;
+  GreedyOpenList pq;
+  phmap::flat_hash_map<std::bitset<NUM_VARS>, u32> dist;
   u32 nodes_expanded = 0;
 
   State initial = State::InitialState(), s, s2, best;
-  pq.push(initial);
+  int initial_h = initial.GoalCount();
+  pq.push(initial, std::make_pair(initial_h, 0));
   dist[initial.bs] = 0;
 
   printf("N: %u\nM: %u\nP: %u\nVARS: %u\n", N, M, P, NUM_VARS);
-  printf("Initial GC: %u\nInitial state (bits): ", initial.GoalCount());
+  printf("Initial GC: %u\nInitial state (bits): ", initial_h);
   PrintBitset(initial.bs);
 
   Timer timer(TIME_LIMIT_S);
-  
+
   best.g = INT_MAX;
 
-  while (pq.size()) {
+  while (!pq.empty()) {
     ++nodes_expanded;
 
-    s = pq.top();
-    pq.pop();
+    s = pq.pop();
 
     if (nodes_expanded % PRINT_INTERVAL == 0)
       printf("#%-3u %-10.2lf open %-10zu closed %-10zu gc %-4u g %-2u\n",
@@ -130,11 +179,11 @@ RunAlgorithm()
             if (dist.count(s2.bs) == 0 or dist[s2.bs] > s2.g) {
               dist[s2.bs] = s2.g;
               s2.gc = s2.GoalCount();
-              pq.push(s2);
+              pq.push(s2, std::make_pair(s2.gc, s2.g));
             }
           } else {
             s2.gc = s2.GoalCount();
-            pq.push(s2);
+            pq.push(s2, std::make_pair(s2.gc, s2.g));
           }
         }
       }

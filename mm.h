@@ -15,7 +15,7 @@ constexpr u32 DW = M * P;
 constexpr u32 NUM_VARS = DU * DV * DW;
 using VariableSet = std::bitset<NUM_VARS>;
 
-/// @brief Get the flattened index in the 3D tensor 
+/// @brief Get the flattened index in the 3D tensor
 inline u32
 Idx(const u32 i, const u32 j, const u32 k)
 {
@@ -38,4 +38,4 @@ constexpr double TIME_LIMIT_S = 30; // Seconds
 constexpr bool STOP_WHEN_SOL_FOUND =
   false; // Stop immediately once a solution is found
 constexpr bool USE_HASH = false; // Use hash table?
-constexpr u32 PRINT_INTERVAL = 1; 
+constexpr u32 PRINT_INTERVAL = 1;
