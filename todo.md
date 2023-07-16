@@ -1,0 +1,4 @@
+- implement additive A*
+- improve neighbor generation function
+- if result of node being expanded is optimal (i.e. pdb already cached), stop immediately
+- global dist - can probably share across A* calls!

@@ -1,7 +1,9 @@
 #include <chrono>
 #include <cfloat>
 
-/// @brief Time-tracking structure
+/**
+ * A time tracking structure.
+ */
 class Timer
 {
 	using clock = std::chrono::steady_clock;
